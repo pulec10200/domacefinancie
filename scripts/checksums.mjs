@@ -1,4 +1,4 @@
-import { readdir, readFile, writeFile } from "node:fs/promises";
+import { readdir, readFile, writeFile, copyFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 const { version } = JSON.parse(await readFile("package.json", "utf8"));
 const names = (await readdir("release"))
@@ -15,3 +15,8 @@ for (const name of names)
       name,
   );
 await writeFile("release/SHA256SUMS.txt", lines.join("\n") + "\n");
+
+await copyFile(
+  "assets/legal/THIRD_PARTY_NOTICES.txt",
+  "release/THIRD_PARTY_NOTICES.txt",
+);

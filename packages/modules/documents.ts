@@ -131,7 +131,18 @@ export class DocumentService {
     return id;
   }
   private async recognize(input: string | Buffer) {
-    if (!this.ocrWorker)
+    if (!this.ocrWorker) {
+      for (const language of ["slk", "eng"]) {
+        const model = await stat(
+          join(this.languages, language + ".traineddata.gz"),
+        ).catch(() => null);
+        if (!model?.isFile() || model.size === 0)
+          throw Error(
+            "Chýba lokálny OCR model: " +
+              language +
+              ". Opravte inštaláciu a zopakujte spracovanie.",
+          );
+      }
       this.ocrWorker = await createWorker(["slk", "eng"], 1, {
         langPath: this.languages,
         cacheMethod: "none",
@@ -152,6 +163,7 @@ export class DocumentService {
               );
         },
       });
+    }
     return (await this.ocrWorker.recognize(input)).data.text;
   }
   private async verify(

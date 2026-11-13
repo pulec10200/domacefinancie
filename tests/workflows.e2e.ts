@@ -160,6 +160,15 @@ test("backs up through the desktop UI and restores a verified profile across res
     await closed;
     app = await launch(root);
     page = await app.firstWindow();
+    await expect(
+      page.getByRole("heading", { name: "Prehľad", exact: true }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Účty", exact: true }).click();
+    await expect(
+      page
+        .locator("section .row")
+        .getByText("Preserved account", { exact: true }),
+    ).toBeVisible();
     const snapshot = await page.evaluate(() => window.finance.snapshot());
     expect(snapshot.accounts.map((a) => a.name)).toEqual(["Preserved account"]);
     expect(snapshot.accounts[0].balance).toBe(8765);

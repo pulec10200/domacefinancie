@@ -9,6 +9,7 @@ jobs:
       matrix:
         os: [ubuntu-24.04, windows-2025]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: actions/setup-node@v7.1.0
@@ -68,4 +69,11 @@ jobs:
             release/*.AppImage
             release/*.exe
             release/SHA256SUMS.txt
-            assets/legal/THIRD_PARTY_NOTICES.txt
+            release/THIRD_PARTY_NOTICES.txt
+      - name: Save synthetic desktop test diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: diagnostics-${{ runner.os }}
+          path: test-results/
+          if-no-files-found: ignore

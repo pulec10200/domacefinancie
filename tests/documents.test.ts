@@ -262,3 +262,21 @@ it("matches an invoice to its recurring period even when actual due date changes
   });
   expect(snapshot.monthly[0].unpaid).toBe(2500);
 });
+it("fails missing offline OCR models promptly, preserves the original and permits retry", async () => {
+  const path = join(dir, "missing-ocr.png");
+  await sharp({
+    create: { width: 100, height: 100, channels: 3, background: "white" },
+  })
+    .png()
+    .toFile(path);
+  const id = await docs.importFile(path);
+  await docs.processNext();
+  const row = db
+    .prepare("SELECT path,status,error FROM documents WHERE id=?")
+    .get(id) as any;
+  expect(row.status).toBe("failed");
+  expect(row.error).toContain("OCR model");
+  expect(await readFile(row.path)).toEqual(await readFile(path));
+  docs.retry(id);
+  expect((docs.list()[0] as any).status).toBe("pending");
+});
