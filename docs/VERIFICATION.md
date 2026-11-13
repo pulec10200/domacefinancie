@@ -11,7 +11,7 @@
 
 ## Remote/installed verification
 
-The previous 0.1.0 [run 43419601569](https://github.com/pulec10200/domacefinancie/actions/runs/43419601569) passed Linux/Windows builds and packaged OCR, but does not validate the new version. The 1.0.0-rc.1 workflow adds the full desktop workflows and actual .deb/NSIS installation; Linux installed execution is isolated from external networking. Initial integrated run 43476970152 passed service/type/lint checks and three desktop workflows on both platforms, but failed the restore test teardown race described above. The follow-up run includes that correction; final results are recorded after completion. Configured checks alone are not evidence of a pass.
+The previous 0.1.0 [run 43419601569](https://github.com/pulec10200/domacefinancie/actions/runs/43419601569) passed Linux/Windows builds and packaged OCR, but does not validate the new version. The 1.0.0-rc.1 workflow adds the full desktop workflows and actual .deb/NSIS installation; Linux installed execution is isolated from external networking. Initial integrated run 43476970152 passed service/type/lint checks and three desktop workflows on both platforms, but failed the restore test teardown race described above. Run 43477827525 passed source and packaged Linux workflows, but its installed test selected a documentation directory with the same basename instead of the executable. Installer discovery now requires a regular executable file. Final installed results are recorded after completion. Configured checks alone are not evidence of a pass.
 
 ## Limits
 

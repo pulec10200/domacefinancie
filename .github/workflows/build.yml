@@ -45,8 +45,14 @@ jobs:
         shell: bash
         run: |
           sudo apt-get install -y ./release/*.deb
-          installed=$(dpkg-query -L domace-financie | sed -n '/\/domace-financie$/p' | head -n 1)
-          test -x "$installed"
+          installed=""
+          while IFS= read -r candidate; do
+            if [[ -f "$candidate" && -x "$candidate" && "${candidate##*/}" == "domace-financie" ]]; then
+              installed="$candidate"
+              break
+            fi
+          done < <(dpkg-query -L domace-financie)
+          test -n "$installed"
           FINANCE_PACKAGED_EXECUTABLE="$installed" bash scripts/test-offline-linux.sh
       - name: Install Windows package and test installed application
         if: runner.os == 'Windows'
