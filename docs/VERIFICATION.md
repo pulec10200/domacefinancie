@@ -1,20 +1,42 @@
 # Verification — 1.0.0-rc.1, 2026-11-13
 
-## Executed locally on Linux
+**Final result: success on Linux and Windows.** [GitHub Actions run 43479699912](https://github.com/pulec10200/domacefinancie/actions/runs/43479699912) tested application source commit `1d4c42c8815e5567117b16e338d59e61fbd3f701`. Subsequent documentation-only commits do not change the tested application.
 
-- npm test: **59 tests passed in 7 suites**. Coverage includes balances, integer overflow rollback, transfers/idempotence, annual/month-end recurrence, partial payments, previous-schema upgrade/reopening, real offline OCR and missing-model failure/retry without original loss, QR results (Verified/NotFound/Unavailable) with injected eKasa adapters, PDF text/preview, duplicates/invalid/incomplete files, restart recovery, retained originals, extraction conflicts/corrections, hierarchical budgets, asset/contract attribution, rule amount/skip history, actual invoice due dates without duplicate recurring periods, secret-free export, reminders, five mocked AI adapters, consent/fallback, invalid JSON and limits, complete/tampered/relocated backup restoration.
-- npm run typecheck, npm run lint and npm run format:check: passed.
-- npm run build: passed, including generated production dependency notices.
-- Four source Electron workflows passed: account/receipt OCR and idempotent confirmation; watched PDF invoice → proposals/preview → payable → dashboard/reminder → restart persistence; native-dialog backup/restore with fresh-profile activation. The fourth workflow creates assets/contracts, a category hierarchy/budget and two AI configurations with explicit routing and no cloud consent.
-- Linux packaged execution passed all four workflows (21.1 seconds). .deb and AppImage were built, and both SHA-256 checks passed. The final missing-model preflight change is covered by its regression test. A later repeat exposed a test teardown race after successful restore assertions: the test closed the new window before renderer startup completed. Waiting for visible restored account UI fixed it; five consecutive restore runs passed.
-- npm audit --omit=dev: **0 known production dependency vulnerabilities** at check time. Installation reported 15 moderate development-tree findings; no force upgrade was applied.
+| Check | ubuntu-24.04 | windows-2025 |
+| --- | --- | --- |
+| Unit/integration tests | 59 passed, 7 suites | 59 passed, 7 suites |
+| Typecheck, lint, build | Passed | Passed |
+| Source desktop workflows | 4 passed | 4 passed |
+| Packaged executable workflows | 4 passed | 4 passed |
+| Actual package installation | .deb installed successfully | NSIS installed successfully |
+| Installed executable workflows | 4 passed, external networking disabled | 4 passed |
+| Distribution artifacts | .deb, AppImage, SHA-256, notices | NSIS .exe, SHA-256, notices |
 
-## Remote/installed verification
+The Linux installed test created a network namespace, enabled loopback only, switched to the ordinary runner user and started its virtual display within that namespace. All four workflows passed in 21.8 seconds. This proves the tested finance/OCR/import/restore/configuration flows do not require external internet; loopback is used by the test debugger. No live cloud AI request is part of these workflows.
 
-The previous 0.1.0 [run 43419601569](https://github.com/pulec10200/domacefinancie/actions/runs/43419601569) passed Linux/Windows builds and packaged OCR, but does not validate the new version. The 1.0.0-rc.1 workflow adds the full desktop workflows and actual .deb/NSIS installation; Linux installed execution is isolated from external networking. Initial integrated run 43476970152 passed service/type/lint checks and three desktop workflows on both platforms, but failed the restore test teardown race described above. Run 43477827525 passed source and packaged Linux workflows, but its installed test selected a documentation directory with the same basename instead of the executable. Installer discovery now requires a regular executable file. The next run exposed a test-wrapper environment issue: DISPLAY was expanded before Xvfb initialized, and the switched user retained a root home directory. The wrapper now starts Xvfb inside the isolated namespace as the ordinary runner user. Final installed results are recorded after completion. Configured checks alone are not evidence of a pass.
+## Tested behavior
 
-## Limits
+The 59 tests cover balances, integer overflow rollback, idempotent transfers, annual/month-end recurrence, partial payments, previous-schema upgrade/reopening, real bundled offline OCR and missing-model failure/retry without original loss, QR results with injected eKasa adapters (Verified/NotFound/Unavailable), PDF text/preview, duplicates/invalid/incomplete files, restart recovery, retained originals, extraction conflicts/corrections, hierarchical budgets, asset/contract attribution, rule amount/skip history, actual invoice due dates without duplicate recurring periods, secret-free export, reminders, five mocked AI adapters, consent/fallback, invalid JSON/limits and complete/tampered/relocated backup restoration.
 
-Paid/live AI calls were not performed; deterministic transports are intentional and require no API subscription. Authorized automatic eKasa calls were not performed; the production adapter uses manual official verification and OCR. Native notification invocation is captured in E2E while durable eligibility/deduplication is covered by service tests; OS permission settings and desktop delivery vary. Tests run in disposable profiles and do not modify personal finance data.
+Each of the following runs from source, packaged executable and installed executable on both platforms:
 
-No signing certificate, broad Windows 10/11 hardware matrix, other Linux distribution matrix or AppImage FUSE qualification is claimed. Windows Server/Ubuntu runner installation and genuine old-schema migration provide specific evidence rather than universal OS compatibility. No external legal/commercial license audit is claimed.
+1. Create account → image import → local OCR → explicit receipt confirmation → one expense and correct balance → repeat confirmation without duplication; sandboxed renderer exposes no require.
+2. Watch folder → PDF invoice → amount/due-date proposals → original preview → user confirmation → payable/dashboard update → native reminder invocation → restart and retained data.
+3. Native-dialog full backup → later account change → validated GUI restore into a new profile → restart → visible restored account and correct balance; original profile remains preserved.
+4. Asset and linked contract → category hierarchy and budget → two AI configurations and explicit task route, no cloud consent or live API call.
+
+## Local checks
+
+npm test, typecheck, lint, format:check and build passed locally. Linux .deb/AppImage builds and SHA-256 verification passed. All four final packaged Linux workflows passed (21.2 seconds); restoration also passed five consecutive focused repetitions after correcting test startup/teardown coordination. Tests use disposable profiles and synthetic documents only.
+
+npm audit --omit=dev reported **0 known production dependency vulnerabilities** at check time. Installation reported 15 moderate development-tree findings; no force upgrade was applied. Dependency advisories are time-dependent.
+
+## Practical limits
+
+- Live paid AI requests were not performed; deterministic transports intentionally require no subscription. Actual model availability, access and provider billing require explicit user configuration.
+- Authorized automatic eKasa calls were not performed. Production uses official manual verification, separate user attestations and local OCR; injected verification responses do not claim real Financial Administration verification.
+- E2E captures native notification invocation; service tests verify durable eligibility/deduplication. Actual desktop delivery also depends on OS notification permissions and a running app.
+- These are Windows Server/Ubuntu hosted-runner installations. No exhaustive Windows 10/11 hardware matrix, other Linux distribution matrix or AppImage FUSE-mount qualification is claimed. Existing-schema migration is tested, not every installer/OS upgrade path.
+- Installers are unsigned. No certificate or external commercial/license audit was supplied. Document parsing has process/heap/time/page/pixel limits, not an OS security sandbox.
+
+Downloads: [Windows artifact](https://github.com/pulec10200/domacefinancie/actions/runs/43479699912/artifacts/14064667713), [Linux artifact](https://github.com/pulec10200/domacefinancie/actions/runs/43479699912/artifacts/14064204557). These are Actions artifact ZIPs; extract before installation. If retention expires, rerun the workflow from the repository.

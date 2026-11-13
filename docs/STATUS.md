@@ -1,6 +1,6 @@
 # Implementation status — 1.0.0-rc.1
 
-Updated 2026-11-13. The three requested product phases are integrated into one local desktop application. This is an unsigned release candidate; platform-specific validation evidence is recorded in VERIFICATION.md.
+Updated 2026-11-13. The three requested product phases are integrated into one local desktop application. This is an unsigned release candidate. Both platforms passed source, packaged and installed application workflows in run 43479699912, including Linux execution without external networking; detailed evidence and limits are recorded in VERIFICATION.md.
 
 ## Delivered modules
 

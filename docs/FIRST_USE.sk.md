@@ -1,5 +1,7 @@
 # Prvé spustenie Domácich financií
 
+Overené balíky verzie **1.0.0-rc.1**: [Windows](https://github.com/pulec10200/domacefinancie/actions/runs/43479699912/artifacts/14064667713) · [Linux](https://github.com/pulec10200/domacefinancie/actions/runs/43479699912/artifacts/14064204557). Stiahni a rozbaľ ZIP. [Výsledky overenia](https://github.com/pulec10200/domacefinancie/actions/runs/43479699912) sú úspešné na oboch systémoch.
+
 1. Na stránke [zostavení](https://github.com/pulec10200/domacefinancie/actions) otvor najnovšie úspešné zostavenie. Dole v časti **Artifacts** stiahni **desktop-Windows** alebo **desktop-Linux** a rozbaľ ZIP.
 2. **Windows:** spusti inštalátor `.exe` a postupuj podľa sprievodcu. **Ubuntu/Debian:** otvor `.deb` cez správcu softvéru. **AppImage:** povoľ spúšťanie súboru vo vlastnostiach a otvor ho. Balíky zatiaľ nemajú vydavateľský digitálny podpis.
 3. Po otvorení je aplikácia prázdna. V **Účty** pridaj svoj účet a počiatočný zostatok. V **Transakcie** zapisuj príjmy, výdavky a prevody. Aplikácia nekomunikuje s bankou.
