@@ -1,0 +1,40 @@
+name: Validate and build desktop candidates
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '26'
+          cache: npm
+      - run: npm ci
+      - run: npm run setup:ocr
+      - run: npm test
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build
+      - if: runner.os == 'Linux'
+        run: xvfb-run -a npm run test:e2e
+      - if: runner.os == 'Windows'
+        run: npm run test:e2e
+      - if: runner.os == 'Linux'
+        run: npm run dist:linux
+      - if: runner.os == 'Windows'
+        run: npm run dist:win
+      - run: node scripts/checksums.mjs
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: desktop-${{ runner.os }}
+          path: |
+            release/*.deb
+            release/*.AppImage
+            release/*.exe
+            release/SHA256SUMS.txt

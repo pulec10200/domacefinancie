@@ -1,0 +1,8 @@
+node_modules/
+out/
+release/
+*.db*
+.env*
+coverage/
+test-results/
+playwright-report/

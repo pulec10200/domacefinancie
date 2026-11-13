@@ -1,0 +1,10 @@
+{
+  "slk": {
+    "url": "https://raw.githubusercontent.com/naptha/tessdata/gh-pages/4.0.0/slk.traineddata.gz",
+    "sha256": "57c5c374c83c30fb2fbecde204a105b2fb6ca0ea7172e7f302af56bcd72e0f5c"
+  },
+  "eng": {
+    "url": "https://raw.githubusercontent.com/naptha/tessdata/gh-pages/4.0.0/eng.traineddata.gz",
+    "sha256": "ed350f3752f81ee8f38769edc14d92d997dababe23b565c59879372cc46a2468"
+  }
+}
