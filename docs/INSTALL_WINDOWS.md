@@ -1,6 +1,6 @@
 # Windows installation
 
-Windows execution and NSIS installation have not been tested here. The Windows GitHub Actions job builds a candidate, not a verified clean-machine release.
+Windows source execution and NSIS creation have been tested on a GitHub-hosted Windows runner. Clean-machine NSIS installation remains untested. The workflow also checks the packaged executable before uploading candidates.
 
 When a verified NSIS .exe is available, download it, compare its SHA-256 against SHA256SUMS.txt and run it. Unsigned builds may display Windows security warnings; this project currently has no signing certificate.
 

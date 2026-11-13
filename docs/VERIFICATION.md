@@ -13,6 +13,8 @@ Initial attempts exposed and corrected SQL placeholder errors, PDF.js API change
 
 Linux distribution candidates: npm run dist:linux successfully created .deb and AppImage; node scripts/checksums.mjs generated SHA-256 sums and scripts/verify-installation.sh verified both. These are unsigned development candidates; installation on a clean system remains untested.
 
-Not performed: Windows runtime/NSIS build, clean-machine installation, signed release, clean-machine archive-restore UI QA, paid AI service tests or authorized automatic eKasa calls. Full original product acceptance has not passed. Current module gaps are listed in STATUS.md.
+Not performed: clean-machine installation, signed release, clean-machine archive-restore UI QA, paid AI service tests or authorized automatic eKasa calls. Full original product acceptance has not passed. Current module gaps are listed in STATUS.md.
 
 First GitHub Actions run: unit/integration tests (23), typecheck, lint, source build and Electron UI test passed on both ubuntu-24.04 and windows-2025. Installer creation reached .deb/AppImage and NSIS respectively, then electron-builder's implicit publishing failed due to the intentionally absent publication token. Scripts were corrected to use --publish never; a repeat CI run verifies final artifact upload.
+
+Second CI run (43418561639) passed Linux and Windows candidate builds and artifact upload. A separate subsequent packaged Linux smoke test uncovered a startup failure from libvips inside ASAR. Native image/PDF libraries and OCR worker/core directories were explicitly unpacked. The corrected packaged executable passed account creation, renderer isolation and real image import/OCR using bundled assets (5.5 seconds). Source-mode E2E also passed the expanded OCR flow. Packaged checks now run on both platforms in the workflow before artifact upload.

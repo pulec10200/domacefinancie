@@ -29,6 +29,16 @@ jobs:
         run: npm run dist:linux
       - if: runner.os == 'Windows'
         run: npm run dist:win
+      - name: Test packaged Linux application
+        if: runner.os == 'Linux'
+        env:
+          FINANCE_PACKAGED_EXECUTABLE: ${{ github.workspace }}/release/linux-unpacked/domace-financie
+        run: xvfb-run -a npm run test:packaged
+      - name: Test packaged Windows application
+        if: runner.os == 'Windows'
+        env:
+          FINANCE_PACKAGED_EXECUTABLE: ${{ github.workspace }}/release/win-unpacked/Domáce Financie.exe
+        run: npm run test:packaged
       - run: node scripts/checksums.mjs
       - uses: actions/upload-artifact@v7.0.2
         with:

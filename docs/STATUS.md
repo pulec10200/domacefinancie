@@ -27,7 +27,7 @@ Date: 2026-11-13. Initial development implementation. The original three-phase p
 - Configurable reminder offsets, launch on login, tray/background mode and scheduler running while the app is closed.
 - Retry controls, cancellation/time limits, isolated document processing worker and resource-hardening for hostile documents.
 - Direct Google Drive, OneDrive, email, banking or cloud connectors.
-- Windows execution, installer testing on clean Windows/Linux machines, signing and clean-machine GitHub distribution QA.
+- Installer testing on clean Windows/Linux machines, signing and clean-machine distribution QA. Source execution and installer creation are exercised by GitHub Actions; packaged runtime tests are also configured.
 - Commercial license selection and complete third-party license bundle.
 
 Dependencies are pinned in package-lock.json. Native dependencies require rebuild when switching Node tests and Electron. See the final verification report for actual commands run. Tests and source builds do not establish clean-machine installer compatibility.

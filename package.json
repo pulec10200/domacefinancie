@@ -17,7 +17,8 @@
     "test:e2e": "playwright test",
     "pretest": "npm rebuild better-sqlite3",
     "pretest:e2e": "electron-builder install-app-deps",
-    "format:check": "prettier --check \"apps/**/*.{ts,tsx,css}\" \"packages/**/*.ts\" \"tests/**/*.ts\" \"scripts/*.mjs\" \"*.ts\" package.json eslint.config.mjs"
+    "format:check": "prettier --check \"apps/**/*.{ts,tsx,css}\" \"packages/**/*.ts\" \"tests/**/*.ts\" \"scripts/*.mjs\" \"*.ts\" package.json eslint.config.mjs",
+    "test:packaged": "node scripts/test-packaged.mjs"
   },
   "build": {
     "appId": "sk.domacefinancie.desktop",
@@ -49,6 +50,13 @@
         "from": "assets/ocr",
         "to": "ocr"
       }
+    ],
+    "asarUnpack": [
+      "node_modules/sharp/**/*",
+      "node_modules/@img/**/*",
+      "node_modules/@napi-rs/**/*",
+      "node_modules/tesseract.js/**/*",
+      "node_modules/tesseract.js-core/**/*"
     ]
   },
   "dependencies": {
