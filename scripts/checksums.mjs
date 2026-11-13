@@ -1,7 +1,8 @@
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
+const { version } = JSON.parse(await readFile("package.json", "utf8"));
 const names = (await readdir("release"))
-  .filter((n) => /\.(exe|deb|AppImage)$/.test(n))
+  .filter((n) => n.includes(version) && /\.(exe|deb|AppImage)$/.test(n))
   .sort();
 if (!names.length) throw Error("No distribution artifacts found");
 const lines = [];

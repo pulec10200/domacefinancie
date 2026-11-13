@@ -141,3 +141,124 @@ it("recognizes a synthetic image with bundled offline OCR models", async () => {
   expect(row.status).toBe("needs_review");
   expect(row.text).toContain("12.34");
 }, 30000);
+it.each(["Verified", "NotFound", "Unavailable"] as const)(
+  "keeps QR verification %s separate from OCR and retains the original",
+  async (status) => {
+    const { default: QRCode } = await import("qrcode");
+    const { ExtractionService } =
+      await import("../packages/modules/extraction");
+    const extraction = new ExtractionService(db);
+    const image = join(dir, "qr.png");
+    const qr = await QRCode.toBuffer("SYNTHETIC-OFFLINE-RECEIPT", {
+      width: 260,
+      margin: 4,
+    });
+    await sharp(
+      Buffer.from(
+        '<svg width="1000" height="500"><rect width="100%" height="100%" fill="white"/><text x="30" y="90" font-size="50" font-family="sans-serif">Receipt TOTAL 12.34 EUR</text></svg>',
+      ),
+    )
+      .composite([{ input: qr, left: 700, top: 200 }])
+      .png()
+      .toFile(image);
+    const seen: string[] = [];
+    docs = new DocumentService(
+      db,
+      join(dir, "docs"),
+      join(process.cwd(), "assets/ocr"),
+      {
+        verify: async (value) => {
+          seen.push(value);
+          if (status === "Unavailable") throw Error("offline");
+          return { status, amount: status === "Verified" ? 1400 : undefined };
+        },
+      },
+      (id, text, source, v) => extraction.propose(id, text, source, v),
+    );
+    const id = await docs.importFile(image);
+    await docs.processNext();
+    expect(seen).toEqual(["SYNTHETIC-OFFLINE-RECEIPT"]);
+    const row = db
+      .prepare("SELECT status,ekasa,text,path FROM documents WHERE id=?")
+      .get(id) as any;
+    expect(row.status).toBe("needs_review");
+    expect(row.ekasa).toBe(status);
+    expect(row.text).toContain("12.34");
+    expect(await readFile(row.path)).toEqual(await readFile(image));
+    const amounts = extraction.list().filter((f) => f.field === "amount");
+    expect(amounts.some((f) => f.value === 1234)).toBe(true);
+    if (status === "Verified") {
+      expect(
+        amounts.some((f) => f.value === 1400 && f.source === "ekasa"),
+      ).toBe(true);
+    }
+  },
+  30000,
+);
+it("extracts text-layer PDF before OCR and can preview its original page", async () => {
+  const { textPDF } = await import("./pdf-fixture");
+  const { ExtractionService } = await import("../packages/modules/extraction");
+  const extraction = new ExtractionService(db);
+  docs = new DocumentService(
+    db,
+    join(dir, "docs"),
+    "deliberately-missing-models",
+    undefined,
+    (id, text, source, v) => extraction.propose(id, text, source, v),
+  );
+  const path = join(dir, "invoice.pdf");
+  await writeFile(
+    path,
+    textPDF(["Invoice", "TOTAL 25.00 EUR", "Due date: 2026-11-20"]),
+  );
+  const id = await docs.importFile(path);
+  await docs.processNext();
+  expect((docs.list()[0] as any).status).toBe("needs_review");
+  expect(extraction.list()).toContainEqual(
+    expect.objectContaining({ field: "amount", value: 2500 }),
+  );
+  const preview = await docs.preview(id, 1);
+  expect(preview.pages).toBe(1);
+  expect(preview.image).toMatch(/^data:image\/png;base64,/);
+});
+it("does not reprocess a document confirmed while its job was pending", async () => {
+  const path = join(dir, "pending.pdf");
+  await writeFile(path, "%PDF-1.4\nSynthetic");
+  const id = await docs.importFile(path);
+  docs.complete(id, "contract", id);
+  await docs.processNext();
+  expect((docs.list()[0] as any).status).toBe("confirmed");
+});
+it("matches an invoice to its recurring period even when actual due date changes", async () => {
+  const { FinanceService } = await import("../packages/core/service");
+  const service = new FinanceService(db);
+  service.addRule({
+    name: "Phone",
+    amount: 2000,
+    start: "2026-11-01",
+    interval: 1,
+  });
+  const first = service.snapshot("2026-11-13").payables[0];
+  const path = join(dir, "bill.pdf");
+  await writeFile(path, "%PDF-1.4\nSynthetic");
+  const documentId = await docs.importFile(path);
+  const id = service.confirmDocument({
+    documentId,
+    kind: "invoice",
+    payableId: first.id,
+    name: "Phone actual",
+    amount: 2500,
+    date: "2026-11-20",
+  });
+  expect(id).toBe(first.id);
+  const snapshot = service.snapshot("2026-11-13");
+  expect(
+    snapshot.payables.filter((p) => p.due.startsWith("2026-11")),
+  ).toHaveLength(1);
+  expect(snapshot.payables.find((p) => p.id === id)).toMatchObject({
+    estimated_amount: 2000,
+    amount: 2500,
+    due: "2026-11-20",
+  });
+  expect(snapshot.monthly[0].unpaid).toBe(2500);
+});

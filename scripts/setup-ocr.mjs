@@ -15,3 +15,9 @@ for (const lang of ["slk", "eng"]) {
   };
 }
 await writeFile("assets/ocr/manifest.json", JSON.stringify(manifest, null, 2));
+
+const license = await globalThis.fetch(
+  "https://raw.githubusercontent.com/naptha/tessdata/gh-pages/LICENSE",
+);
+if (!license.ok) throw Error("OCR license download failed");
+await writeFile("assets/ocr/LICENSE", await license.text());

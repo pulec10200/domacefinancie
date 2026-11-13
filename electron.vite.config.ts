@@ -3,7 +3,14 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
-    build: { rollupOptions: { input: "apps/desktop/src/main/index.ts" } },
+    build: {
+      rollupOptions: {
+        input: {
+          index: "apps/desktop/src/main/index.ts",
+          documentWorker: "apps/desktop/src/main/documentWorker.ts",
+        },
+      },
+    },
   },
   preload: {
     plugins: [externalizeDepsPlugin()],

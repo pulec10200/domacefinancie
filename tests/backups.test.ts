@@ -93,3 +93,23 @@ it("refuses incomplete legacy backups with no integrity manifest", async () => {
   );
   await expect(backups.restore(external)).rejects.toThrow();
 });
+it("moves data into an external profile, preserving originals and rejecting recursive backups", async () => {
+  new FinanceService(db).addAccount({
+    name: "Saved",
+    type: "cash",
+    opening: 4321,
+  });
+  const backup = await backups.create(external);
+  const profile = await backups.restore(backup, external);
+  expect(await activeDataDirectory(root)).toBe(profile);
+  const moved = openDatabase(join(profile, "finance.db"));
+  try {
+    expect(new FinanceService(moved).snapshot().accounts[0].balance).toBe(4321);
+    await expect(
+      new BackupService(moved, root, profile).create(profile),
+    ).rejects.toThrow();
+  } finally {
+    moved.close();
+  }
+  expect(new FinanceService(db).snapshot().accounts[0].balance).toBe(4321);
+});

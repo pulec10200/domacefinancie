@@ -19,3 +19,12 @@ Keep contextIsolation and sandbox enabled and nodeIntegration disabled. Validate
 
 ## Verification and done
 Run npm test, npm run typecheck, npm run lint, npm run build and applicable npm run test:e2e. Native modules target different Node/Electron ABIs; scripts rebuild the appropriate target. Add meaningful regression tests and update public API documentation, STATUS and CHANGELOG. Never suppress validation or delete failing tests to claim success. Unbuilt packages and unrun platforms must be explicitly identified. A feature is done only when its user workflow, persistence, errors, tests and documentation work together.
+
+## Integrated modules and external APIs
+- packages/modules/domain owns assets/contracts/categories/budgets and consumes finance through injected snapshots/rules.
+- packages/modules/extraction owns proposals/provenance and immutable confirmations; AI produces proposals only.
+- packages/modules/ai owns adapters, routing, consent, usage/reservations and an injected SecretStorage interface. Main binds it to secure OS storage, refusing Linux basic_text.
+- packages/modules/settings owns durable preferences and daily notification claims. Main/startup own native startup/tray effects.
+- documentProcessor/documentWorker form a serialized child-process boundary. Never require a separately installed Node runtime for packaged processing. Keep OCR models and native worker resources packaged.
+- Check current primary provider documentation before adapter changes. Maintain mocked offline transport tests; live tests require explicit configuration. Never echo provider error bodies containing credentials/documents into logs.
+- Add modules by first defining typed schemas, then migrations/services, narrow IPC/preload, Slovak UI, persistence/error tests and documentation (docs/ADDING_A_MODULE.md). Preserve original recurrence period identity when invoice due dates change.

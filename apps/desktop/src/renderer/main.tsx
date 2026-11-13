@@ -1,3 +1,13 @@
+import { MaintenancePanel } from "./MaintenancePanel";
+import { PreferencesPanel } from "./PreferencesPanel";
+import type { SettingsState } from "../../../../packages/contracts/settings";
+import { localDate } from "../../../../packages/contracts/primitives";
+import { AIModels } from "./AIModels";
+import { DocumentReview } from "./DocumentReview";
+import type { AIState } from "../../../../packages/contracts/ai";
+import type { ExtractionField } from "../../../../packages/contracts/extraction";
+import { DomainPanels } from "./DomainPanels";
+import type { DomainSnapshot } from "../../../../packages/contracts/domain";
 import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -15,15 +25,32 @@ const euro = (n: number) =>
   new Intl.NumberFormat("sk-SK", { style: "currency", currency: "EUR" }).format(
     n / 100,
   );
-const today = () => new Date().toISOString().slice(0, 10);
+const today = localDate;
 function App() {
   const [data, setData] = useState<Snapshot>();
+  const [domain, setDomain] = useState<DomainSnapshot>();
+  const [extractions, setExtractions] = useState<ExtractionField[]>([]);
+  const [ai, setAI] = useState<AIState>();
+  const [settings, setSettings] = useState<SettingsState>();
   const [page, setPage] = useState("Prehľad");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [backupPath, setBackupPath] = useState("");
-  const refresh = async () => setData(await window.finance.snapshot());
+  const refresh = async () => {
+    const [f, d, e, a, s] = await Promise.all([
+      window.finance.snapshot(),
+      window.finance.domainSnapshot(),
+      window.finance.extractions(),
+      window.finance.aiState(),
+      window.finance.settings(),
+    ]);
+    setData(f);
+    setDomain(d);
+    setExtractions(e);
+    setAI(a);
+    setSettings(s);
+  };
   useEffect(() => {
     void refresh().catch((e) => setError(String(e)));
     const timer = setInterval(
@@ -59,25 +86,47 @@ function App() {
     };
   const field = (v: FormData, k: string) => String(v.get(k) ?? "");
   const accounts = data?.accounts ?? [];
-  const selectAccountOptional = () => (
-    <select name="accountId">
-      <option value="">Len pre bloček</option>
-      {accounts.map((a) => (
-        <option key={a.id} value={a.id}>
-          {a.name}
-        </option>
-      ))}
-    </select>
-  );
   const selectAccount = (name = "accountId") => (
     <select name={name} required>
       <option value="">Vyberte účet</option>
-      {accounts.map((a) => (
-        <option key={a.id} value={a.id}>
-          {a.name}
-        </option>
-      ))}
+      {accounts
+        .filter((a) => !a.archived)
+        .map((a) => (
+          <option key={a.id} value={a.id}>
+            {a.name}
+          </option>
+        ))}
     </select>
+  );
+  const associations = () => (
+    <>
+      <label>
+        Majetok
+        <select name="assetId">
+          <option value="">Bez majetku</option>
+          {domain?.assets
+            .filter((a) => !a.archived)
+            .map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+        </select>
+      </label>
+      <label>
+        Zmluva
+        <select name="contractId">
+          <option value="">Bez zmluvy</option>
+          {domain?.contracts
+            .filter((c) => !c.archived)
+            .map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+        </select>
+      </label>
+    </>
   );
   return (
     <div className="shell">
@@ -98,6 +147,11 @@ function App() {
             "Transakcie",
             "Povinnosti",
             "Dokumenty",
+            "Rozpočty",
+            "Majetok",
+            "Zmluvy a poistky",
+            "Kategórie",
+            "AI modely",
             "Nastavenia",
           ].map((p) => (
             <button
@@ -139,6 +193,11 @@ function App() {
           <>
             {page === "Prehľad" && (
               <>
+                {settings && !settings.lastBackup && (
+                  <p className="error">
+                    Zatiaľ nemáte kompletnú zálohu. Vytvorte ju v Nastaveniach.
+                  </p>
+                )}
                 <section className="hero">
                   <small>CELKOVÝ ZOSTATOK</small>
                   <h2>{euro(accounts.reduce((s, a) => s + a.balance, 0))}</h2>
@@ -155,6 +214,18 @@ function App() {
                         Skutočné výdavky <b>{euro(m.expenses)}</b>
                       </p>
                       <p>
+                        Očakávané príjmy <b>{euro(m.expectedIncome)}</b>
+                      </p>
+                      <p>
+                        Povinné výdavky <b>{euro(m.mandatory)}</b>
+                      </p>
+                      <p>
+                        Predpoveď zostatku <b>{euro(m.forecast)}</b>
+                      </p>
+                      <p>
+                        Po splatnosti <b>{euro(m.overdue)}</b>
+                      </p>
+                      <p>
                         Zostáva uhradiť <b>{euro(m.unpaid)}</b>
                       </p>
                     </section>
@@ -163,7 +234,7 @@ function App() {
                 <section>
                   <h3>Najbližšie nezaplatené povinnosti</h3>
                   {data.payables
-                    .filter((p) => p.paid < p.amount)
+                    .filter((p) => !p.cancelled && p.paid < p.amount)
                     .slice(0, 8)
                     .map((p) => (
                       <div className="row" key={p.id}>
@@ -174,7 +245,7 @@ function App() {
                         <b>{euro(p.amount - p.paid)}</b>
                       </div>
                     ))}
-                  {!data.payables.length && (
+                  {!data.payables.filter((p) => !p.cancelled).length && (
                     <p>
                       Zatiaľ nemáte žiadne povinnosti. Pridajte prvú v sekcii
                       Povinnosti.
@@ -243,6 +314,11 @@ function App() {
                         date: field(v, "date"),
                         description: field(v, "description"),
                         category: field(v, "category") || "Ostatné",
+                        categoryId: domain?.categories.find(
+                          (c) => c.name === field(v, "category"),
+                        )?.id,
+                        assetId: field(v, "assetId") || undefined,
+                        contractId: field(v, "contractId") || undefined,
                         requestId: crypto.randomUUID(),
                       }),
                     )}
@@ -260,11 +336,13 @@ function App() {
                       Cieľ prevodu
                       <select name="targetId">
                         <option value="">Bez cieľového účtu</option>
-                        {accounts.map((a) => (
-                          <option key={a.id} value={a.id}>
-                            {a.name}
-                          </option>
-                        ))}
+                        {accounts
+                          .filter((a) => !a.archived)
+                          .map((a) => (
+                            <option key={a.id} value={a.id}>
+                              {a.name}
+                            </option>
+                          ))}
                       </select>
                     </label>
                     <label>
@@ -286,8 +364,14 @@ function App() {
                     </label>
                     <label>
                       Kategória
-                      <input name="category" />
+                      <input name="category" list="transaction-categories" />
+                      <datalist id="transaction-categories">
+                        {domain?.categories.map((c) => (
+                          <option key={c.id}>{c.name}</option>
+                        ))}
+                      </datalist>
                     </label>
+                    {associations()}
                     <button disabled={busy}>Uložiť transakciu</button>
                   </form>
                 </section>
@@ -324,7 +408,13 @@ function App() {
                         amount: parseMoney(field(v, "amount")),
                         start: field(v, "start"),
                         end: field(v, "end") || undefined,
-                        interval: Number(field(v, "interval")),
+                        interval: Number(
+                          field(v, "customInterval") || field(v, "interval"),
+                        ),
+                        direction: field(v, "direction") as
+                          "income" | "expense",
+                        assetId: field(v, "assetId") || undefined,
+                        contractId: field(v, "contractId") || undefined,
                       }),
                     )}
                   >
@@ -350,6 +440,13 @@ function App() {
                       <input type="date" name="end" />
                     </label>
                     <label>
+                      Typ plánovanej platby
+                      <select name="direction">
+                        <option value="expense">Výdavok</option>
+                        <option value="income">Očakávaný príjem</option>
+                      </select>
+                    </label>
+                    <label>
                       Opakovanie
                       <select name="interval">
                         <option value="0">Jednorazovo</option>
@@ -359,52 +456,64 @@ function App() {
                         <option value="12">Ročne</option>
                       </select>
                     </label>
+                    <label>
+                      Vlastný interval v mesiacoch (voliteľný)
+                      <input
+                        name="customInterval"
+                        type="number"
+                        min="1"
+                        max="120"
+                      />
+                    </label>
+                    {associations()}
                     <button disabled={busy}>Vytvoriť povinnosť</button>
                   </form>
                 </section>
                 <section>
-                  {data.payables.map((p) => (
-                    <div key={p.id}>
-                      <div className="row">
-                        <span>
-                          {p.name}
-                          <small>
-                            {p.due} ·{" "}
-                            {p.paid >= p.amount
-                              ? "Zaplatené"
-                              : p.paid
-                                ? "Čiastočne zaplatené"
-                                : p.due < today()
-                                  ? "Po splatnosti"
-                                  : "Nezaplatené"}
-                          </small>
-                        </span>
-                        <b>{euro(p.amount - p.paid)}</b>
+                  {data.payables
+                    .filter((p) => !p.cancelled)
+                    .map((p) => (
+                      <div key={p.id}>
+                        <div className="row">
+                          <span>
+                            {p.name}
+                            <small>
+                              {p.due} ·{" "}
+                              {p.paid >= p.amount
+                                ? "Zaplatené"
+                                : p.paid
+                                  ? "Čiastočne zaplatené"
+                                  : p.due < today()
+                                    ? "Po splatnosti"
+                                    : "Nezaplatené"}
+                            </small>
+                          </span>
+                          <b>{euro(p.amount - p.paid)}</b>
+                        </div>
+                        {p.paid < p.amount && (
+                          <form
+                            onSubmit={submit((v) =>
+                              window.finance.pay({
+                                payableId: p.id,
+                                accountId: field(v, "accountId"),
+                                amount: parseMoney(field(v, "amount")),
+                                date: today(),
+                                requestId: crypto.randomUUID(),
+                              }),
+                            )}
+                          >
+                            {selectAccount()}
+                            <input
+                              aria-label="Suma úhrady"
+                              name="amount"
+                              required
+                              placeholder="Suma úhrady EUR"
+                            />
+                            <button disabled={busy}>Zaznamenať úhradu</button>
+                          </form>
+                        )}
                       </div>
-                      {p.paid < p.amount && (
-                        <form
-                          onSubmit={submit((v) =>
-                            window.finance.pay({
-                              payableId: p.id,
-                              accountId: field(v, "accountId"),
-                              amount: parseMoney(field(v, "amount")),
-                              date: today(),
-                              requestId: crypto.randomUUID(),
-                            }),
-                          )}
-                        >
-                          {selectAccount()}
-                          <input
-                            aria-label="Suma úhrady"
-                            name="amount"
-                            required
-                            placeholder="Suma úhrady EUR"
-                          />
-                          <button disabled={busy}>Zaznamenať úhradu</button>
-                        </form>
-                      )}
-                    </div>
-                  ))}
+                    ))}
                 </section>
               </>
             )}
@@ -442,77 +551,19 @@ function App() {
                   Originály sa archivujú bez zmien. Výsledky OCR vyžadujú
                   kontrolu. Automatické overenie eKasa nie je aktívne.
                 </p>
-                {data.documents.map((d) => (
-                  <section key={d.id}>
-                    <div className="row">
-                      <h3>{d.name}</h3>
-                      <button
-                        onClick={() =>
-                          void action(() => window.finance.openDocument(d.id))
-                        }
-                      >
-                        Otvoriť originál
-                      </button>
-                    </div>
-                    <p>
-                      Spracovanie:{" "}
-                      {(
-                        {
-                          pending: "Čaká vo fronte",
-                          needs_review: "Čaká na kontrolu",
-                          failed: "Chyba",
-                          confirmed: "Potvrdené",
-                        } as Record<string, string>
-                      )[d.status] ?? d.status}{" "}
-                      · eKasa: {d.ekasa}
-                    </p>
-                    {d.error && <p className="error">{d.error}</p>}
-                    {d.text && <pre>{d.text}</pre>}
-                    {d.status !== "confirmed" && (
-                      <form
-                        onSubmit={submit((v) =>
-                          window.finance.confirmDocument({
-                            documentId: d.id,
-                            kind: field(v, "kind") as "invoice",
-                            name: field(v, "name"),
-                            amount: parseMoney(field(v, "amount")),
-                            date: field(v, "date"),
-                            accountId: field(v, "accountId") || undefined,
-                          }),
-                        )}
-                      >
-                        <label>
-                          Typ záznamu
-                          <select name="kind">
-                            <option value="invoice">Faktúra → povinnosť</option>
-                            <option value="receipt">Bloček → výdavok</option>
-                          </select>
-                        </label>
-                        <label>
-                          Popis
-                          <input name="name" required defaultValue={d.name} />
-                        </label>
-                        <label>
-                          Overená suma EUR
-                          <input name="amount" required />
-                        </label>
-                        <label>
-                          Splatnosť / dátum úhrady
-                          <input
-                            name="date"
-                            type="date"
-                            required
-                            defaultValue={today()}
-                          />
-                        </label>
-                        <label>Účet pre bloček{selectAccountOptional()}</label>
-                        <button disabled={busy}>
-                          Potvrdiť finančný záznam
-                        </button>
-                      </form>
-                    )}
-                  </section>
-                ))}
+                {domain &&
+                  ai &&
+                  data.documents.map((d) => (
+                    <DocumentReview
+                      key={d.id}
+                      document={d}
+                      finance={data}
+                      domain={domain}
+                      fields={extractions}
+                      ai={ai}
+                      action={action}
+                    />
+                  ))}
                 {!data.documents.length && (
                   <section>Importujte svoj prvý dokument.</section>
                 )}
@@ -521,6 +572,21 @@ function App() {
             {page === "Nastavenia" && (
               <section>
                 <h3>Dáta a zálohy</h3>
+                <button
+                  disabled={busy}
+                  onClick={() =>
+                    void action(async () => {
+                      const path = await window.finance.exportData();
+                      if (path) setBackupPath("Export JSON: " + path);
+                    })
+                  }
+                >
+                  Exportovať údaje do JSON
+                </button>
+                <p>
+                  Export JSON obsahuje záznamy bez API kľúčov. Kompletná záloha
+                  nižšie obsahuje aj originály dokumentov.
+                </p>
                 <p>
                   Dáta sú uložené v aplikačnom priečinku operačného systému.
                   Vyberte samostatný disk alebo priečinok pre zálohu.
@@ -555,17 +621,37 @@ function App() {
                   Pred obnovou sa skontroluje integrita. Po potvrdení sa
                   aplikácia reštartuje; pôvodný dátový profil zostane zachovaný.
                 </p>
-                <h3>Stav tejto vývojovej verzie</h3>
+                <h3>Lokálne spracovanie</h3>
                 <p>
-                  AI poskytovatelia, rozpočty, majetok a zmluvy zatiaľ nie sú
-                  dostupné. Upozornenia fungujú iba počas spustenej aplikácie.
-                  OCR obrázkov vyžaduje lokálne jazykové balíky.
+                  Upozornenia fungujú počas spustenej aplikácie. AI modely sú
+                  voliteľné a vyžadujú vlastnú konfiguráciu. Slovenské a
+                  anglické OCR modely sú súčasťou inštalátora.
                 </p>
               </section>
             )}
           </>
         )}
-        <footer>Domáce Financie · vývojová verzia 0.1.0 · EUR</footer>
+        {data && domain && (
+          <DomainPanels
+            page={page}
+            data={domain}
+            finance={data}
+            action={action}
+          />
+        )}
+        {page === "AI modely" && ai && <AIModels state={ai} action={action} />}
+        {page === "Nastavenia" && settings && (
+          <PreferencesPanel settings={settings} action={action} />
+        )}
+        {data && domain && (
+          <MaintenancePanel
+            page={page}
+            finance={data}
+            domain={domain}
+            action={action}
+          />
+        )}
+        <footer>Domáce Financie · verzia 1.0.0-rc.1 · EUR</footer>
       </main>
     </div>
   );

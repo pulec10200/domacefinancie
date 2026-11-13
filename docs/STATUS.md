@@ -1,35 +1,25 @@
-# Actual implementation status
+# Implementation status — 1.0.0-rc.1
 
-Date: 2026-11-13. Initial development implementation. The original three-phase product is not complete.
+Updated 2026-11-13. The three requested product phases are integrated into one local desktop application. This is an unsigned release candidate; platform-specific validation evidence is recorded in VERIFICATION.md.
 
-## Implemented
-- React/TypeScript Slovak desktop UI with empty/loading/error states.
-- Sandboxed Electron renderer, explicit bridge, input schemas, main-frame IPC restriction and CSP.
-- SQLite WAL persistence, foreign keys, two versioned transactional migrations and audit events for core entity changes.
-- EUR accounts, expenses, income, idempotent atomic transfers, integer monetary inputs.
-- Monthly/quarterly/semiannual/annual and one-off obligation rules, month-end clamping, end dates, payable generation and partial payments.
-- Current and next month actuals and unpaid obligations.
-- PDF/image validation, 30 MB file limit, pixel limits, SHA-256 deduplication, immutable archive.
-- Persistent jobs, restart recovery, local QR on images, manual eKasa state, local Slovak/English OCR and PDF text-first/scanned-page processing.
-- User confirmation of documents into a payable or expense with idempotent linking. No automated financial writes from OCR.
-- Local folder watcher with five-second write stabilization and periodic rescans; original source files stay intact.
-- Notifications while app runs, once per payable per day at default reminder intervals and for overdue payments.
-- Complete backup with SHA-256 manifest, SQLite/foreign-key integrity checks and archive validation; confirmed restore into a new profile with the original data preserved.
+## Delivered modules
 
-## Not implemented / not production complete
-- Budget management, assets, separate contracts/insurance entities and their UI.
-- Category hierarchy and editing/deleting/cancelling financial records.
-- Household separation, non-EUR currencies, amount schedules/exceptions and invoice matching to an existing recurring obligation.
-- AI adapters, provider/model configuration, secrets storage, routing, token limits and extraction confidence/provenance field model.
-- Deterministic structured amount/date proposals: document confirmation currently requires manual entry from OCR/original.
-- Side-by-side embedded document preview and correction history. Originals open using the OS viewer.
-- Automatic authorized eKasa API, QR from PDF pages, receipt item reconciliation and field-level sources.
-- Configurable reminder offsets, launch on login, tray/background mode and scheduler running while the app is closed.
-- Retry controls, cancellation/time limits, isolated document processing worker and resource-hardening for hostile documents.
-- Direct Google Drive, OneDrive, email, banking or cloud connectors.
-- Installer testing on clean Windows/Linux machines, signing and clean-machine distribution QA. Source execution and installer creation are exercised by GitHub Actions; packaged runtime tests are also configured.
-- Commercial license selection and complete third-party license bundle.
+- Finance: EUR accounts, income, expenses, atomic idempotent transfers, editable records, reversible transaction cancellation and account archiving, category hierarchy, monthly category budgets including descendants.
+- Assets: property, vehicles, financial/other assets, identifiers, ownership and values; linked contract and transaction costs/income.
+- Contracts: independent insurance/loan/rental/service records, original document links, insurance period, anniversary, premium due, notice period and insured amount. Optional obligation creation when confirming a contract document.
+- Obligations: one-off, monthly, quarterly, semiannual, annual and custom month intervals; end dates, future amount changes and per-occurrence exceptions; planned income; partial payment allocations; unpaid cancellation and future-rule stopping. Matching an invoice to an expected payable replaces the estimate without creating a duplicate.
+- Dashboard: current/next month actuals, expected income, mandatory/unpaid expenses, overdue liabilities and projected balance; upcoming items and document-review count.
+- Documents: immutable SHA-256 archive, duplicates, folder watcher/rescans, persistent jobs and restart recovery; PDF text-first and scanned multi-page OCR, image QR and PDF page QR; bundled local Slovak/English recognition; preview beside editable suggestions, sources, conflicts, user correction history and receipt item reconciliation. Confirmation is required for financial writes.
+- AI: OpenAI, Anthropic, Gemini, Ollama and compatible endpoint adapters; multiple configurations, task routing, optional approved fallback, strict JSON validation, timeouts/attempts, token/cost reservation and usage. OS-encrypted keys; insecure plaintext fallback is refused. Local processing remains the default.
+- Automation: configurable reminder intervals, daily deduplication, overdue handling, optional background tray and launch at login. Reminders require a running application; missed liabilities remain visible after startup.
+- Data: three transactional migrations, automatic pre-upgrade SQLite safety copy, full JSON export without keys, complete verified database/archive backup and GUI restoration into a new profile preserving originals; configurable data location.
+- Delivery: Linux .deb/AppImage and Windows NSIS build scripts, CI, packaged/installed application test commands, checksums, dependency license notices and engineering/user documentation.
 
-Dependencies are pinned in package-lock.json. Native dependencies require rebuild when switching Node tests and Electron. See the final verification report for actual commands run. Tests and source builds do not establish clean-machine installer compatibility.
+## Explicit boundaries
 
-Next implementation priorities: add structured extraction/provenance and matching; budgets/assets/contracts modules; AI adapters and consent routing; full offline pipeline E2E tests; Windows and clean-machine packaging QA.
+- Automatic eKasa access is not enabled: supported third-party terms/API could not be confirmed. The permitted alternative is implemented: typed adapter, official manual verification, user attestation recorded separately, and complete local OCR fallback. A QR code alone is never marked Verified. See integrations/EKASA.md.
+- Real paid AI requests require the user's own model IDs, credentials and explicit consent. Adapters are tested with deterministic offline transports; no live cloud qualification or billing accuracy guarantee is claimed. Costs use user-entered prices and conservative reservations when usage is unknown.
+- Remote Drive/OneDrive/email connectors and banking are future integrations. Synced local folders work now; independent source configuration contracts exist without fake functional UI.
+- One local household and EUR are supported. Future household boundaries are modeled; multi-user authentication and currency conversion are out of scope.
+- Document processing has a separate process, heap/time/page/pixel limits and cancellation. It is not an operating-system security sandbox. Only import documents you intend to process; a parser exploit is not ruled out by these controls.
+- No signing certificate was supplied. Installers are unsigned. Public commercial licensing, signing and broader hardware/distribution QA remain release-owner decisions, not hidden product features.

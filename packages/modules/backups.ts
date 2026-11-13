@@ -83,8 +83,12 @@ export async function activeDataDirectory(root: string) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return root;
     throw error;
   }
-  const id = z.string().uuid().parse(JSON.parse(pointer).id);
-  const path = join(root, "profiles", id);
+  const record = z
+    .object({ id: z.string().uuid(), directory: z.string().optional() })
+    .parse(JSON.parse(pointer));
+  if (record.directory && !isAbsolute(record.directory))
+    throw Error("Dátový priečinok musí mať absolútnu cestu.");
+  const path = record.directory ?? join(root, "profiles", record.id);
   const info = await lstat(path);
   if (!info.isDirectory() || info.isSymbolicLink())
     throw Error("Neplatný dátový profil.");
@@ -100,6 +104,9 @@ export class BackupService {
     const source = await realpath(this.applicationRoot);
     const targetRoot = await realpath(destination);
     const rel = relative(source, targetRoot);
+    const dataRel = relative(await realpath(this.dataDirectory), targetRoot);
+    if (dataRel === "" || (!dataRel.startsWith("..") && !isAbsolute(dataRel)))
+      throw Error("Vyberte priečinok mimo aktívnych dát.");
     if (rel === "" || (!rel.startsWith("..") && !isAbsolute(rel)))
       throw Error("Vyberte zálohovací priečinok mimo aplikačných dát.");
     const id = randomUUID();
@@ -147,10 +154,12 @@ export class BackupService {
     await rename(pending, complete);
     return complete;
   }
-  async restore(source: string) {
+  async restore(source: string, externalRoot?: string) {
     const manifest = await validateBackup(source);
     const id = randomUUID();
-    const profile = join(this.applicationRoot, "profiles", id);
+    const profile = externalRoot
+      ? join(externalRoot, "domace-financie-data-" + id)
+      : join(this.applicationRoot, "profiles", id);
     await mkdir(profile, { recursive: true });
     for (const file of manifest.files) {
       const target = join(profile, file.path);
@@ -170,7 +179,11 @@ export class BackupService {
       this.applicationRoot,
       "active-profile-" + id + ".tmp",
     );
-    await writeFile(temporary, JSON.stringify({ id }), { flag: "wx" });
+    await writeFile(
+      temporary,
+      JSON.stringify({ id, ...(externalRoot ? { directory: profile } : {}) }),
+      { flag: "wx" },
+    );
     await rename(temporary, join(this.applicationRoot, "active-profile.json"));
     return profile;
   }

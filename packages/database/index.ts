@@ -1,5 +1,8 @@
+import { randomUUID } from "node:crypto";
+import { migration3 } from "./migration3";
+export const CURRENT_SCHEMA = 3;
 import Database from "better-sqlite3";
-export function openDatabase(path: string) {
+export function openDatabase(path: string, targetVersion = CURRENT_SCHEMA) {
   const db = new Database(path);
   db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");
@@ -12,8 +15,18 @@ export function openDatabase(path: string) {
       .prepare("SELECT COALESCE(MAX(version),0) AS v FROM schema_migrations")
       .get() as { v: number }
   ).v;
-  if (current > 2) throw Error("Database is newer than this application");
-  if (current < 1)
+  if (
+    current > 0 &&
+    current < Math.min(targetVersion, CURRENT_SCHEMA) &&
+    path !== ":memory:"
+  ) {
+    db.prepare("VACUUM INTO ?").run(
+      path + ".schema-" + current + "-" + randomUUID() + ".backup.db",
+    );
+  }
+  if (current > CURRENT_SCHEMA)
+    throw Error("Database is newer than this application");
+  if (current < 1 && targetVersion >= 1)
     db.transaction(() => {
       db.exec(`
  CREATE TABLE accounts(id TEXT PRIMARY KEY,name TEXT NOT NULL,type TEXT NOT NULL,currency TEXT NOT NULL CHECK(currency='EUR'),opening INTEGER NOT NULL);
@@ -33,12 +46,19 @@ export function openDatabase(path: string) {
         new Date().toISOString(),
       );
     })();
-  if (current < 2)
+  if (current < 2 && targetVersion >= 2)
     db.transaction(() => {
       db.exec(
         `CREATE TABLE document_confirmations(document_id TEXT PRIMARY KEY REFERENCES documents(id),kind TEXT NOT NULL,entity_id TEXT NOT NULL);`,
       );
       db.prepare("INSERT INTO schema_migrations VALUES(2,?)").run(
+        new Date().toISOString(),
+      );
+    })();
+  if (current < 3 && targetVersion >= 3)
+    db.transaction(() => {
+      db.exec(migration3);
+      db.prepare("INSERT INTO schema_migrations VALUES(3,?)").run(
         new Date().toISOString(),
       );
     })();
@@ -57,9 +77,40 @@ export function inspectDatabase(path: string) {
         .prepare("SELECT MAX(version) version FROM schema_migrations")
         .get() as { version: number }
     ).version;
-    if (version < 1 || version > 2)
+    if (version < 1 || version > CURRENT_SCHEMA)
       throw Error("Nepodporovaná verzia databázy.");
   } finally {
     db.close();
   }
+}
+export function exportDatabase(db: FinanceDatabase) {
+  const tables = db
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
+    )
+    .all() as { name: string }[];
+  const output: Record<string, unknown> = {};
+  for (const { name } of tables) {
+    if (!/^[a-z_]+$/.test(name)) throw Error("Neočakávaný názov tabuľky.");
+    output[name] = (
+      db.prepare(`SELECT * FROM "${name}"`).all() as Record<string, unknown>[]
+    ).map((row) => {
+      if (name === "ai_configurations") {
+        const { secret: ignored, ...safe } = row;
+        void ignored;
+        return safe;
+      }
+      if (name === "documents")
+        return {
+          ...row,
+          path: "documents/Archive/" + String(row.path).split(/[\\/]/).at(-1),
+        };
+      return row;
+    });
+  }
+  return {
+    schemaVersion: CURRENT_SCHEMA,
+    createdAt: new Date().toISOString(),
+    tables: output,
+  };
 }

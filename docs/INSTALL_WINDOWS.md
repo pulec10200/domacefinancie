@@ -1,9 +1,9 @@
 # Windows installation
 
-Windows source execution and NSIS creation have been tested on a GitHub-hosted Windows runner. Clean-machine NSIS installation remains untested. The workflow also checks the packaged executable before uploading candidates.
+Download desktop-Windows from the latest successful Actions run, extract the ZIP and verify SHA256SUMS.txt with `Get-FileHash -Algorithm SHA256 '<installer.exe>'` or scripts/verify-installation.ps1. Run the NSIS installer and select your installation location. Node.js/Python/build tools are not required for installed users. Builds are unsigned; no verified publisher identity is claimed.
 
-When a verified NSIS .exe is available, download it, compare its SHA-256 against SHA256SUMS.txt and run it. Unsigned builds may display Windows security warnings; this project currently has no signing certificate.
+The workflow builds on windows-2025, tests source and unpacked executables, installs the NSIS package into a disposable directory and repeats the desktop workflows from that installed executable. This is Windows Server runner evidence, not exhaustive Windows 10/11 hardware qualification. See VERIFICATION.md for the actual result of the current run.
 
-From source on a development machine: install Git and Node.js 26 plus native build tools (Visual Studio Build Tools with C++ and Python for node-gyp when required). Open a terminal in the project and run `npm ci`, `npm run setup:ocr`, `npm run dev`. Build with `npm run dist:win`. Installed users do not require developer tools.
+Data is under the normal Electron userData directory in AppData, independent of installation/source. Never delete it during upgrade. In Settings, create a verified backup before updating. Install the new version over the old application; schema upgrades preserve records and create a SQLite safety snapshot. Keep full database/archive backups on a separate protected disk. Optional API keys may require re-entry if moved to another computer.
 
-Application data belongs under the normal Electron userData folder in AppData, independent of the repository. Never delete this folder during an upgrade.
+Source development requires Git, Node.js 26 and C++/Python build tools when native compilation is needed. Run `npm ci`, `npm run setup:ocr`, `npm run dev`; build with `npm run dist:win`. See FIRST_USE.sk.md for normal use.

@@ -1,20 +1,20 @@
-# Verification report — 2026-11-13
+# Verification — 1.0.0-rc.1, 2026-11-13
 
-Actually executed in this Linux development environment:
+## Executed locally on Linux
 
-- npm test: 23 tests passed in three suites. Includes money parsing, account balances, income/expense, idempotent transfers, calendar recurrence, annual bills, partial allocation/overpayment, invalid dates, persisted data reopening, version-1 to version-2 migration, SQLite backup reopening, image import/deduplication, invalid/empty files, job crash recovery, unsupported eKasa provider, invoice/receipt confirmation and a real offline OCR run with bundled Slovak/English models, complete database/archive restoration with path rebasing, checksum corruption rejection, traversal rejection and legacy-manifest rejection.
-- npm run typecheck: passed.
-- npm run lint: passed after correcting script globals.
-- npm run build: passed.
-- xvfb-run -a npm run test:e2e: one real Electron UI test passed (account creation and absence of renderer require), with isolated temporary userData.
-- npm audit --omit=dev: zero known production vulnerabilities at check time. Full dependency installation reported 15 moderate development-tree findings; no unsafe force upgrade was applied.
+- npm test: **58 tests passed in 7 suites**. Coverage includes balances, integer overflow rollback, transfers/idempotence, annual/month-end recurrence, partial payments, previous-schema upgrade/reopening, real offline OCR, QR results (Verified/NotFound/Unavailable) with injected eKasa adapters, PDF text/preview, duplicates/invalid/incomplete files, restart recovery, retained originals, extraction conflicts/corrections, hierarchical budgets, asset/contract attribution, rule amount/skip history, actual invoice due dates without duplicate recurring periods, secret-free export, reminders, five mocked AI adapters, consent/fallback, invalid JSON and limits, complete/tampered/relocated backup restoration.
+- npm run typecheck, npm run lint and npm run format:check: passed.
+- npm run build: passed, including generated production dependency notices.
+- Four source Electron workflows passed: account/receipt OCR and idempotent confirmation; watched PDF invoice → proposals/preview → payable → dashboard/reminder → restart persistence; native-dialog backup/restore with fresh-profile activation. The fourth workflow creates assets/contracts, a category hierarchy/budget and two AI configurations with explicit routing and no cloud consent.
+- Prior Linux packaged execution passed the same first three workflows; the updated candidate is revalidated after packaging.
+- npm audit --omit=dev: **0 known production dependency vulnerabilities** at check time. Installation reported 15 moderate development-tree findings; no force upgrade was applied.
 
-Initial attempts exposed and corrected SQL placeholder errors, PDF.js API changes, renderer entry configuration, native ABI setup and E2E profile isolation. The first .deb build failed because homepage metadata was absent; candidate packaging was retried after configuration correction. Do not equate installer creation with installer QA.
+## Remote/installed verification
 
-Linux distribution candidates: npm run dist:linux successfully created .deb and AppImage; node scripts/checksums.mjs generated SHA-256 sums and scripts/verify-installation.sh verified both. These are unsigned development candidates; installation on a clean system remains untested.
+The previous 0.1.0 [run 43419601569](https://github.com/pulec10200/domacefinancie/actions/runs/43419601569) passed Linux/Windows builds and packaged OCR, but does not validate the new version. The 1.0.0-rc.1 workflow adds the full desktop workflows and actual .deb/NSIS installation; Linux installed execution is isolated from external networking. Results for that run are recorded after completion; configured checks alone are not evidence of a pass.
 
-Not performed: clean-machine installation, signed release, clean-machine archive-restore UI QA, paid AI service tests or authorized automatic eKasa calls. Full original product acceptance has not passed. Current module gaps are listed in STATUS.md.
+## Limits
 
-First GitHub Actions run: unit/integration tests (23), typecheck, lint, source build and Electron UI test passed on both ubuntu-24.04 and windows-2025. Installer creation reached .deb/AppImage and NSIS respectively, then electron-builder's implicit publishing failed due to the intentionally absent publication token. Scripts were corrected to use --publish never; a repeat CI run verifies final artifact upload.
+Paid/live AI calls were not performed; deterministic transports are intentional and require no API subscription. Authorized automatic eKasa calls were not performed; the production adapter uses manual official verification and OCR. Native notification invocation is captured in E2E while durable eligibility/deduplication is covered by service tests; OS permission settings and desktop delivery vary. Tests run in disposable profiles and do not modify personal finance data.
 
-Second CI run (43418561639) passed Linux and Windows candidate builds and artifact upload. A separate subsequent packaged Linux smoke test uncovered a startup failure from libvips inside ASAR. Native image/PDF libraries and OCR worker/core directories were explicitly unpacked. The corrected packaged executable passed account creation, renderer isolation and real image import/OCR using bundled assets (5.5 seconds). Source-mode E2E also passed the expanded OCR flow. Packaged checks now run on both platforms in the workflow before artifact upload.
+No signing certificate, broad Windows 10/11 hardware matrix, other Linux distribution matrix or AppImage FUSE qualification is claimed. Windows Server/Ubuntu runner installation and genuine old-schema migration provide specific evidence rather than universal OS compatibility. No external legal/commercial license audit is claimed.

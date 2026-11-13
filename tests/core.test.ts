@@ -3,7 +3,11 @@ import { randomUUID } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { openDatabase, type FinanceDatabase } from "../packages/database";
+import {
+  openDatabase,
+  CURRENT_SCHEMA,
+  type FinanceDatabase,
+} from "../packages/database";
 import { FinanceService, occurrence } from "../packages/core/service";
 import { parseMoney } from "../packages/contracts";
 let db: FinanceDatabase;
@@ -118,7 +122,9 @@ describe("financial core", () => {
     db = openDatabase(join(dir, "test.db"));
     service = new FinanceService(db);
     expect(service.snapshot().accounts[0].balance).toBe(1234);
-    expect(db.prepare("SELECT * FROM schema_migrations").all()).toHaveLength(2);
+    expect(db.prepare("SELECT * FROM schema_migrations").all()).toHaveLength(
+      CURRENT_SCHEMA,
+    );
     expect(db.pragma("integrity_check", { simple: true })).toBe("ok");
   });
   it("creates a restorable SQLite backup", async () => {
@@ -132,15 +138,24 @@ describe("financial core", () => {
   });
 });
 it("upgrades a version-1 database without losing accounts", () => {
-  const id = account(4321);
-  db.exec("DROP TABLE document_confirmations");
-  db.prepare("DELETE FROM schema_migrations WHERE version=2").run();
-  db.close();
-  db = openDatabase(join(dir, "test.db"));
-  service = new FinanceService(db);
-  expect(service.snapshot().accounts[0].id).toBe(id);
-  expect(service.snapshot().accounts[0].balance).toBe(4321);
-  expect(
-    db.prepare("SELECT version FROM schema_migrations ORDER BY version").all(),
-  ).toEqual([{ version: 1 }, { version: 2 }]);
+  const priorPath = join(dir, "version1.db");
+  const prior = openDatabase(priorPath, 1);
+  const id = randomUUID();
+  prior
+    .prepare("INSERT INTO accounts VALUES(?,?,?,?,?)")
+    .run(id, "Legacy", "cash", "EUR", 4321);
+  prior.close();
+  const upgraded = openDatabase(priorPath);
+  try {
+    const s = new FinanceService(upgraded).snapshot();
+    expect(s.accounts[0].id).toBe(id);
+    expect(s.accounts[0].balance).toBe(4321);
+    expect(
+      upgraded
+        .prepare("SELECT MAX(version) version FROM schema_migrations")
+        .get(),
+    ).toEqual({ version: CURRENT_SCHEMA });
+  } finally {
+    upgraded.close();
+  }
 });

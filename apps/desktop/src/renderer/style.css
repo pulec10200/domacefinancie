@@ -226,3 +226,55 @@ footer {
     display: none;
   }
 }
+
+.review-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+.document-preview {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid #dce6df;
+}
+progress {
+  width: 100%;
+  height: 16px;
+  accent-color: #146b50;
+}
+details {
+  margin: 16px 0;
+}
+summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+label:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  flex-basis: 100%;
+}
+input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+aside {
+  overflow-y: auto;
+}
+.local {
+  position: static;
+  margin-top: 40px;
+}
+@media (max-width: 1100px) {
+  .review-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.row {
+  flex-wrap: wrap;
+}
+.review-grid > div {
+  min-width: 0;
+}

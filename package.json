@@ -1,12 +1,12 @@
 {
   "name": "domace-financie",
-  "version": "0.1.0",
+  "version": "1.0.0-rc.1",
   "private": true,
   "description": "Local-first household finance desktop application",
   "main": "out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
-    "build": "electron-vite build",
+    "build": "npm run setup:notices && electron-vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "lint": "eslint .",
@@ -18,7 +18,8 @@
     "pretest": "npm rebuild better-sqlite3",
     "pretest:e2e": "electron-builder install-app-deps",
     "format:check": "prettier --check \"apps/**/*.{ts,tsx,css}\" \"packages/**/*.ts\" \"tests/**/*.ts\" \"scripts/*.mjs\" \"*.ts\" package.json eslint.config.mjs",
-    "test:packaged": "node scripts/test-packaged.mjs"
+    "test:packaged": "node scripts/test-packaged.mjs",
+    "setup:notices": "node scripts/dependency-notices.mjs"
   },
   "build": {
     "appId": "sk.domacefinancie.desktop",
@@ -36,24 +37,30 @@
         "AppImage"
       ],
       "category": "Office",
-      "maintainer": "Domace Financie"
+      "maintainer": "Domace Financie",
+      "icon": "assets/icons/icon.png",
+      "syncDesktopName": true
     },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "assets/icons/icon.ico"
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "runAfterFinish": false
     },
     "extraResources": [
       {
         "from": "assets/ocr",
         "to": "ocr"
+      },
+      {
+        "from": "assets/legal",
+        "to": "legal"
       }
     ],
     "asarUnpack": [
-      "node_modules/sharp/**/*",
-      "node_modules/@img/**/*",
       "node_modules/@napi-rs/**/*",
       "node_modules/tesseract.js/**/*",
       "node_modules/tesseract.js-core/**/*"
@@ -63,11 +70,11 @@
     "@napi-rs/canvas": "1.1.1",
     "better-sqlite3": "13.1.1",
     "chokidar": "6.0.0",
+    "image-size": "2.1.0",
     "jsqr": "1.4.0",
     "pdfjs-dist": "6.5.438",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "sharp": "0.35.5",
     "tesseract.js": "7.0.0",
     "zod": "4.6.7"
   },
@@ -76,6 +83,7 @@
     "@playwright/test": "1.65.0",
     "@types/better-sqlite3": "9.6.0",
     "@types/node": "26.6.6",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.3.0",
@@ -84,6 +92,8 @@
     "electron-vite": "6.0.0",
     "eslint": "10.14.0",
     "prettier": "3.10.1",
+    "qrcode": "^1.5.4",
+    "sharp": "0.35.5",
     "typescript": "6.0.3",
     "typescript-eslint": "8.72.2",
     "vite": "8.3.8",
@@ -97,5 +107,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/pulec10200/domacefinancie.git"
-  }
+  },
+  "license": "UNLICENSED",
+  "desktopName": "domace-financie.desktop"
 }
